@@ -16,11 +16,11 @@ jobs:
   build_wheels:
     outputs:
       digests-linux: ${{ steps.hash-linux.outputs.digests }}
-      digests-macos: ${{ steps.hash-macos.outputs.digests }}
-      digests-windows: ${{ steps.hash-windows.outputs.digests }}
+      # digests-macos: ${{ steps.hash-macos.outputs.digests }}
+      # digests-windows: ${{ steps.hash-windows.outputs.digests }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-11]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     name: Build wheels on ${{ matrix.os }}
 
@@ -39,23 +39,23 @@ jobs:
         with:
           platforms: arm64
 
-      - name: Build for Windows
-        if: runner.os == 'Windows'
-        run: |
-          cmake -A Win32 -B ${{github.workspace}}/build_win32 -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root_win32
-          cmake --build ${{github.workspace}}/build_win32 --config Release --target install --parallel 8
-          cmake -A x64   -B ${{github.workspace}}/build_amd64 -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root_amd64
-          cmake --build ${{github.workspace}}/build_amd64 --config Release --target install --parallel 8
-          cmake -A arm64 -B ${{github.workspace}}/build_arm64 -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root_arm64
-          cmake --build ${{github.workspace}}/build_arm64 --config Release --target install --parallel 8
+      # - name: Build for Windows
+      #   if: runner.os == 'Windows'
+      #   run: |
+      #     cmake -A Win32 -B ${{github.workspace}}/build_win32 -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root_win32
+      #     cmake --build ${{github.workspace}}/build_win32 --config Release --target install --parallel 8
+      #     cmake -A x64   -B ${{github.workspace}}/build_amd64 -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root_amd64
+      #     cmake --build ${{github.workspace}}/build_amd64 --config Release --target install --parallel 8
+      #     cmake -A arm64 -B ${{github.workspace}}/build_arm64 -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root_arm64
+      #     cmake --build ${{github.workspace}}/build_arm64 --config Release --target install --parallel 8
 
-      - name: Build for Mac
-        if: runner.os == 'macOS'
-        run: |
-          cmake -B ${{github.workspace}}/build -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root
-          cmake --build ${{github.workspace}}/build --config Release --target install --parallel 8
-        env:
-          CMAKE_OSX_ARCHITECTURES: arm64;x86_64
+      # - name: Build for Mac
+      #   if: runner.os == 'macOS'
+      #   run: |
+      #     cmake -B ${{github.workspace}}/build -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/root
+      #     cmake --build ${{github.workspace}}/build --config Release --target install --parallel 8
+      #   env:
+      #     CMAKE_OSX_ARCHITECTURES: arm64;x86_64
 
       - name: Install cibuildwheel
         working-directory: ${{github.workspace}}/python
@@ -68,8 +68,8 @@ jobs:
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS_LINUX: auto aarch64
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
-          CIBW_ARCHS_WINDOWS: auto ARM64
+          # CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          # CIBW_ARCHS_WINDOWS: auto ARM64
           CIBW_SKIP: "pp* *-musllinux_*"
           CIBW_BUILD_VERBOSITY: 1
 
@@ -110,20 +110,20 @@ jobs:
           prerelease: true
           file_glob: true
 
-      - name: Generate SLSA subjects - Macos
-        id: hash-macos
-        if: runner.os == 'macOS'
-        run: echo "digests=$(shasum -a 256 ./python/wheelhouse/* | base64)" >> $GITHUB_OUTPUT
+      # - name: Generate SLSA subjects - Macos
+      #   id: hash-macos
+      #   if: runner.os == 'macOS'
+      #   run: echo "digests=$(shasum -a 256 ./python/wheelhouse/* | base64)" >> $GITHUB_OUTPUT
 
       - name: Generate SLSA subjects - Linux
         id: hash-linux
         if: runner.os == 'Linux'
         run: echo "digests=$(sha256sum ./python/wheelhouse/* | base64 -w0)" >> $GITHUB_OUTPUT
 
-      - name: Generate SLSA subjects - Windows
-        id: hash-windows
-        if: runner.os == 'Windows'
-        run: echo "digests=$(sha256sum ./python/wheelhouse/* | base64 -w0)" >> $GITHUB_OUTPUT
+      # - name: Generate SLSA subjects - Windows
+      #   id: hash-windows
+      #   if: runner.os == 'Windows'
+      #   run: echo "digests=$(sha256sum ./python/wheelhouse/* | base64 -w0)" >> $GITHUB_OUTPUT
 
   gather-disgests:
     needs: [build_wheels]
@@ -135,13 +135,13 @@ jobs:
         id: hash
         env:
           LINUX_DIGESTS: "${{ needs.build_wheels.outputs.digests-linux }}"
-          MACOS_DIGESTS: "${{ needs.build_wheels.outputs.digests-macos }}"
-          WINDOWS_DIGESTS: "${{ needs.build_wheels.outputs.digests-windows }}"
+          # MACOS_DIGESTS: "${{ needs.build_wheels.outputs.digests-macos }}"
+          # WINDOWS_DIGESTS: "${{ needs.build_wheels.outputs.digests-windows }}"
         run: |
           set -euo pipefail
           echo "$LINUX_DIGESTS" | base64 -d > checksums.txt
-          echo "$MACOS_DIGESTS" | base64 -d >> checksums.txt
-          echo "$WINDOWS_DIGESTS" | base64 -d >> checksums.txt
+          # echo "$MACOS_DIGESTS" | base64 -d >> checksums.txt
+          # echo "$WINDOWS_DIGESTS" | base64 -d >> checksums.txt
           echo "digests=$(cat checksums.txt | base64 -w0)" >> $GITHUB_OUTPUT
 
   provenance:
